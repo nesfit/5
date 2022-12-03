@@ -263,3 +263,6 @@ __pycache__/
 .vscode
 
 appsettings.*.json
+/src/CookBook/CookBook.Api.App/keys/is-signing-key-06E8D6F66A6E333D61A7681255F67D80.json
+/src/CookBook/CookBook.Api.App/tempkey.jwk
+/src/CookBook/CookBook.IdentityServer/keys/is-signing-key-5AA09F1F826FDCF6FB6E7C6FD42C1A6A.json

@@ -15,6 +15,7 @@ using CookBook.Api.DAL.Memory.Installers;
 using CookBook.Common.Extensions;
 using CookBook.Common.Models;
 using CookBook.Common.Resources;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -25,12 +26,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Localization;
+using NSwag;
 
 var builder = WebApplication.CreateBuilder();
 
+ConfigureIdentity(builder);
 ConfigureCors(builder.Services);
 ConfigureLocalization(builder.Services);
-
 ConfigureOpenApiDocuments(builder.Services);
 ConfigureDependencies(builder.Services, builder.Configuration);
 ConfigureAutoMapper(builder.Services);
@@ -43,10 +45,23 @@ UseDevelopmentSettings(app);
 UseSecurityFeatures(app);
 UseLocalization(app);
 UseRouting(app);
+UseIdentity(app);
 UseEndpoints(app);
 UseOpenApi(app);
 
 app.Run();
+
+void ConfigureIdentity(WebApplicationBuilder builder)
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.Authority = "https://localhost:7279";
+            options.TokenValidationParameters.ValidateAudience = false;
+        });
+
+    builder.Services.AddAuthorization();
+}
 
 void ConfigureCors(IServiceCollection serviceCollection)
 {
@@ -68,7 +83,14 @@ void ConfigureOpenApiDocuments(IServiceCollection serviceCollection)
 {
     serviceCollection.AddEndpointsApiExplorer();
     serviceCollection.AddOpenApiDocument(settings =>
-        settings.OperationProcessors.Add(new RequestCultureOperationProcessor()));
+    {
+        settings.AddSecurity("OpenID Connect", new OpenApiSecurityScheme
+        {
+            Type = OpenApiSecuritySchemeType.OpenIdConnect,
+            OpenIdConnectUrl = "https://localhost:7279/.well-known/openid-configuration"
+        });
+        settings.OperationProcessors.Add(new RequestCultureOperationProcessor());
+    });
 }
 
 void ConfigureDependencies(IServiceCollection serviceCollection, IConfiguration configuration)
@@ -139,7 +161,8 @@ void UseIngredientEndpoints(RouteGroupBuilder routeGroupBuilder)
 void UseRecipeEndpoints(RouteGroupBuilder routeGroupBuilder)
 {
     var recipeEndpoints = routeGroupBuilder.MapGroup("recipe")
-        .WithTags("recipe");
+        .WithTags("recipe")
+        .RequireAuthorization();
 
     recipeEndpoints.MapGet("", (IRecipeFacade recipeFacade) => recipeFacade.GetAll());
 
@@ -153,7 +176,6 @@ void UseRecipeEndpoints(RouteGroupBuilder routeGroupBuilder)
     recipeEndpoints.MapPost("upsert", (RecipeDetailModel recipe, IRecipeFacade recipeFacade) => recipeFacade.CreateOrUpdate(recipe));
     recipeEndpoints.MapDelete("{id:guid}", (Guid id, IRecipeFacade recipeFacade) => recipeFacade.Delete(id));
 }
-
 
 void UseDevelopmentSettings(WebApplication application)
 {
@@ -185,6 +207,12 @@ void UseLocalization(IApplicationBuilder application)
 void UseRouting(IApplicationBuilder application)
 {
     application.UseRouting();
+}
+
+void UseIdentity(WebApplication application)
+{
+    application.UseAuthentication();
+    application.UseAuthorization();
 }
 
 void UseOpenApi(IApplicationBuilder application)

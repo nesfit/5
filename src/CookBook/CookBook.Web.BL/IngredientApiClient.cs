@@ -1,13 +1,11 @@
-﻿using System.Net.Http;
-
-namespace CookBook.Web.BL
+﻿namespace CookBook.Web.BL
 {
     public partial class IngredientApiClient
     {
-        public IngredientApiClient(HttpClient httpClient, string baseUrl)
-            : this(httpClient)
+        public IngredientApiClient(AuthenticatedHttpClient authenticatedHttpClient)
         {
-            BaseUrl = baseUrl;
+            _httpClient = authenticatedHttpClient.HttpClient;
+            _settings = new System.Lazy<Newtonsoft.Json.JsonSerializerSettings>(CreateSerializerSettings);
         }
     }
 }

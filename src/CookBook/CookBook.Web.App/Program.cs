@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Globalization;
-using System.Net.Http;
 using AutoMapper.Internal;
+using Blazored.LocalStorage;
 using CookBook.Common.Extensions;
 using CookBook.Web.App;
+using CookBook.Web.App.Options;
+using CookBook.Web.BL;
 using CookBook.Web.BL.Extensions;
 using CookBook.Web.BL.Installers;
 using CookBook.Web.BL.Options;
@@ -18,11 +20,17 @@ const string defaultCultureString = "cs";
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("app");
 
-var apiBaseUrl = builder.Configuration.GetValue<string>("ApiBaseUrl");
-
 builder.Services.AddInstaller<WebDALInstaller>();
-builder.Services.AddInstaller<WebBLInstaller>(apiBaseUrl);
-builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddInstaller<WebBLInstaller>();
+
+builder.Services.AddTransient<AuthenticationHeaderHandler>();
+
+var apiBaseUrl = builder.Configuration.GetValue<string>("ApiBaseUrl") ?? string.Empty;
+
+builder.Services.AddHttpClient<AuthenticatedHttpClient>()
+    .ConfigureHttpClient(client => client.BaseAddress = new Uri(apiBaseUrl))
+    .AddHttpMessageHandler<AuthenticationHeaderHandler>();
+
 builder.Services.AddAutoMapper(configuration =>
     {
         // This is a temporary fix - should be able to remove this when version 11.0.2 comes out
@@ -35,6 +43,9 @@ builder.Services.Configure<LocalDbOptions>(options =>
 {
     options.IsLocalDbEnabled = bool.Parse(builder.Configuration.GetSection(nameof(LocalDbOptions))[nameof(LocalDbOptions.IsLocalDbEnabled)]);
 });
+
+builder.Services.Configure<IdentityServerOptions>(options => builder.Configuration.GetSection("IdentityServer").Bind(options));
+builder.Services.AddBlazoredLocalStorage();
 
 var host = builder.Build();
 

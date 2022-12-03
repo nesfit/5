@@ -27,6 +27,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Localization;
 using NSwag;
+using NSwag.Generation.Processors.Security;
 
 var builder = WebApplication.CreateBuilder();
 
@@ -90,6 +91,7 @@ void ConfigureOpenApiDocuments(IServiceCollection serviceCollection)
             OpenIdConnectUrl = "https://localhost:7279/.well-known/openid-configuration"
         });
         settings.OperationProcessors.Add(new RequestCultureOperationProcessor());
+        settings.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor());
     });
 }
 

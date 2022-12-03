@@ -56,7 +56,7 @@ void ConfigureIdentity(WebApplicationBuilder builder)
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
-            options.Authority = "https://localhost:7279";
+            options.Authority = builder.Configuration["IdentityServerUrl"];
             options.TokenValidationParameters.ValidateAudience = false;
         });
 
